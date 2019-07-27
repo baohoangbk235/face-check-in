@@ -1,0 +1,14 @@
+train_dir: "/data/facereg/ABB/images"
+test_dir: "/data/facereg/ABB/abb_camera_data/Bao/test"
+model_dir: "/data/facereg/ABB/abb_camera_data/Bao/trained"
+label_path: "/data/facereg/ABB/abb_camera_data/Bao/trained/labels.npy"
+trained_model: "/data/facereg/ABB/abb_camera_data/Bao/trained/trained_knn_clg.clf"
+current_user_imgs_dir: 'data/train/'
+database: '/data/facereg/ABB/abb_camera_data/Bao/trained/database.db'
+save_dir: 'data/save_dir/'
+font_path: 'font/architep.ttf'
+thickness: 5
+font_size: 30
+n_neighbors: 20
+face_thresh: 0.4
+down_scale: 0.25
