@@ -1,12 +1,12 @@
-checkin_api: "http://127.0.0.1:5000/check-in/"
-predict_api: "http://127.0.0.1:5000/predict"
 train_dir: "/home/baohoang235/WorkSpace/Infore/face-check-in/data/InfoRe"
 test_dir: "data/test/"
 model_dir: "trained/"
-label_path: "/home/baohoang235/WorkSpace/Infore/face-check-in/trained/labels.npy"
-trained_model: "/home/baohoang235/WorkSpace/Infore/face-check-in/trained/trained_knn_model.clf"
+label_path: "/home/baohoang235/face-check-in/Bao/trained/1/labels.npy"
+trained_model: "/home/baohoang235/face-check-in/Bao/trained/1/trained_knn_model.clf"
 current_user_imgs_dir: 'data/train/'
-database: '/home/baohoang235/WorkSpace/Infore/face-check-in/database.db'
+database: '/home/baohoang235/face-check-in/database.db'
+retrain_images_dir: '/home/baohoang235/face-check-in/retrain_images'
+encoding_path: '/home/baohoang235/face-check-in/Bao/trained/1//encodings.npy'
 save_dir: 'data/save_dir/'
 font_path: 'font/architep.ttf'
 thickness: 5

@@ -5,7 +5,7 @@ from db import CheckinManager
 
 # cap = cv2.VideoCapture('rtsp://192.168.1.254:554/user=admin&password=&channel=3&stream=0.sdp?real_stream--rtp-caching=100')
 cap = cv2.VideoCapture(0)
-c = CheckinManager('/home/baohoang235/infore-check-in/database.db')
+c = CheckinManager('/home/baohoang235/face-check-in/database.db')
 
 def send_frame(frame):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))

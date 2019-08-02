@@ -1,8 +1,8 @@
 import sqlite3
-import datetime
+from datetime import datetime
 import json
 
-DATABASE = '/home/baohoang235/infore-check-in/database.db'
+DATABASE = '/home/baohoang235/face-check-in/database.db'
 
 class CheckinManager(object):
     def __init__(self, database):
@@ -31,6 +31,13 @@ class CheckinManager(object):
                 "pred"	TEXT NOT NULL\
             )\
         ')
+        self.conn.execute('\
+            CREATE TABLE IF NOT EXISTS "results" (\
+                "name"	TEXT NOT NULL,\
+                "datetime" DATETIME NOT NULL,\
+                "image" TEXT NOT NULL\
+            )\
+        ')
 
     def add_predictions(self, list_predictions):
         for item in list_predictions:
@@ -47,6 +54,31 @@ class CheckinManager(object):
         self.delete_predictions()
         self.add_predictions(list_predictions)
         self.conn.commit()
+    
+    def add_result(self, name, time, image):
+        self.cursor.execute("INSERT INTO results(name, datetime, image) VALUES(?,?,?)", (name,time,image))
+        self.conn.commit()
+    
+    def get_result(self):
+        self.cursor.execute("SELECT * from results")
+        rows = self.cursor.fetchall()
+        for row in rows:
+            print(row)        
+
+    def check(self,name, now):
+        self.cursor.execute("SELECT * from results")
+        rows = self.cursor.fetchall()
+        for row in reversed(rows):
+            print(row)
+            date_time_obj = datetime.strptime(str(row[1]), '%m/%d/%Y-%H:%M:%S')
+            delay_check_in = int((now - date_time_obj).total_seconds())
+            if delay_check_in > 300:
+                return False
+            else:
+                if str(row[0]) == name:
+                    print(f"\n[INFO]{name} have been checked-in recently!\n")
+                    return True        
+        return False 
 
     def delete_predictions(self):
         self.cursor.execute("DELETE FROM predictions")
@@ -67,12 +99,11 @@ class CheckinManager(object):
 
     def delete_tables(self):
         self.cursor.execute('DROP TABLE predictions')
+        self.cursor.execute('DROP TABLE results')
+
 
 if __name__ == "__main__":
     c = CheckinManager(DATABASE)
-    # c.delete_tables()
+    c.delete_tables()
     c.create_table()
-    c.add_predictions([3,4,5])
-    c.update_predictions([])
-    c.get_predictions()
     c.close()

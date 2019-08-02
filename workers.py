@@ -16,11 +16,30 @@ import os
 import pickle
 from db import CheckinManager
 
-with open('/home/baohoang235/infore-check-in/Bao/trained/1/labels.npy','rb') as f:
-	labels = np.load(f)
+import yaml
+CONFIG_PATH = 'config.yaml'
+try:
+    config_file = open(CONFIG_PATH, 'r')
+    cfg = yaml.safe_load(config_file)
+except:
+    raise ("Error: Config file does not exist !")
 
-with open('/home/baohoang235/infore-check-in/Bao/trained/1/trained_knn_model.clf','rb') as f:
+DATABASE = cfg['database']
+LABEL_PATH = cfg['label_path']
+ENCODING_PATH = cfg['encoding_path']
+KNN_MODEL = cfg['trained_model']
+RETRAIN_DIR = cfg['retrain_images_dir']
+
+with open(LABEL_PATH,'rb') as f:
+	labels = list(np.load(f))
+
+with open(KNN_MODEL,'rb') as f:
 	knn = pickle.load(f)
+
+with open(ENCODING_PATH,'rb') as f:
+    encodings = list(np.load(f))
+
+retrain_images_dir = '/home/baohoang235/face-check-in/retrain_images'
 
 f = open('check_in_results.csv','r')
 csv_reader = csv.reader(f, delimiter=',')
@@ -30,8 +49,7 @@ name = None
 total_time = 0
 total_detect = 0 
 
-c = CheckinManager('/home/baohoang235/infore-check-in/database.db')
-c.delete_predictions
+c = CheckinManager(DATABASE)
 
 def create_worker():
 
@@ -60,7 +78,8 @@ def callback(ch, method, properties, body):
 
         global csv_reader
         global name
-        global c  
+        global c 
+        global encodings 
 
         predictions = c.get_predictions()
 
@@ -102,40 +121,32 @@ def callback(ch, method, properties, body):
                 counter = collections.Counter(predictions)
                 (final_prediction, times) =  counter.most_common(1)[0]
                 if times > 3:
-                    checked = 0
+                    checked = False
                     if final_prediction != "unknown":
                         name = str(final_prediction)
 
                         now = datetime.now()
 
-                        print(name)
-                        
-                        for row in reversed(list(csv_reader)):
-                            date_time_obj = datetime.strptime(str(row[1]), '%m/%d/%Y-%H:%M:%S')
-                            delay_check_in = int((now - date_time_obj).total_seconds())
-                            if delay_check_in > 300:
-                                break
-                            else:
-                                if row[0] ==  str(name):
-                                    checked = 1
-                                    print(f"[INFO] {str(row[0])} You have checked in recently!")
-                                    break
-                        print(delay_check_in)
-
                         date_time = now.strftime("%m/%d/%Y-%H:%M:%S")
 
                         time_stamp = int(datetime.timestamp(now))
-                            
-                        cv2.imwrite(os.path.join(os.getcwd(),'images','{}.jpg'.format(time_stamp)), 
+                        
+                        class_retrain_dir = os.path.join(os.getcwd(),RETRAIN_DIR, name)
+
+                        if not os.path.exists(class_retrain_dir):
+                            os.mkdir(class_retrain_dir)
+
+                        cv2.imwrite(os.path.join(class_retrain_dir,'{}.jpg'.format(time_stamp)), 
                                                     face_frame)
 
-                        row = [name, date_time, f'{time_stamp}.jpg']
+                        checked = c.check(name, now)
 
                         if not checked:
-                            with open('check_in_results.csv','a') as writeFile:
-                                writer = csv.writer(writeFile)
-                                writer.writerow(row)
-                                print("[INFO]Check-in information has been saved into csv!")
+                            c.add_result(name, date_time, os.path.join(class_retrain_dir,'{}.jpg'.format(time_stamp)))
+                            print("\n[INFO] {} has been checked in successfully.\n".format(name))
+
+                        encodings.append(faces_encodings)
+                        labels.append(name)
 
                     else:
                         print("Unknown")
