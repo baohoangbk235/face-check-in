@@ -39,10 +39,10 @@ class CheckinManager(object):
             )\
         ')
 
-    def add_predictions(self,camID, list_predictions):
+    def add_predictions(self, list_predictions):
         for item in list_predictions:
             self.cursor.execute("INSERT INTO predictions(pred) VALUES(?)", (item,))
-        count = len(self.get_predictions(camID))
+        count = len(self.get_predictions())
         if count <= 5:
             count = 0
         else:
@@ -88,12 +88,12 @@ class CheckinManager(object):
         self.cursor.execute(f"DELETE FROM predictions limit {count}")
         self.conn.commit()
 
-    def get_predictions(self, camID):
+    def get_predictions(self):
         predictions = []
         self.cursor.execute("SELECT * from predictions")
         rows = self.cursor.fetchall()
         for row in rows:
-            predictions.append(str(row[camID]))
+            predictions.append(str(row[0]))
 
         return predictions
 
