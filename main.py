@@ -2,19 +2,28 @@ import pika
 import cv2 
 import numpy as np 
 from db import CheckinManager
+import threading
 
 # cap = cv2.VideoCapture('rtsp://192.168.1.254:554/user=admin&password=&channel=3&stream=0.sdp?real_stream--rtp-caching=100')
+cap_list = []
 cap = cv2.VideoCapture(0)
+cap_list.append(cap)
 c = CheckinManager('/home/baohoang235/face-check-in/database.db')
 
-def send_frame(frame):
+def send_frame(frame, camera_channel):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
 
     # for (top, right, bottom, left, match) in face_locations_match:
     #     face_frame = frame[top:bottom, left:right, :]
     
-    mes = frame.astype(np.uint8).tobytes()
+    # mes = frame.astype(np.uint8).tobytes()
+
+    frame = frame.astype(np.uint8)
+
+    camera = np.ones((480,1,3)) * camera_channel
+
+    mes = np.hstack((frame, camera)).astype(np.uint8).tobytes()
 
     
     channel.basic_publish(exchange='',
@@ -33,22 +42,24 @@ import time
 
 while(True):
     start = time.time()
-    ret, frame = cap.read()
+    for cap in cap_list:
+        ret, frame = cap.read()
 
-    frame = cv2.resize(frame, (640,480))
+        if not ret:
+            break 
 
-    if count_detect % detect_delay == 0:
-        send_frame(frame)
+        frame = cv2.resize(frame, (640,480))
 
-        # predictions, locations = c.get_predictions()
+        if count_detect % detect_delay == 0:
+            send_frame(frame, 0)
 
-        # if len(locations) > 0:
-        #     for face_location in locations:
-        #         top, right, bottom, left = face_location
-        #         cv2.rectangle(frame, (left,top), (right, bottom), (0,255,0), 2)
+            # predictions, locations = c.get_predictions()
 
-    if not ret:
-        break 
+            # if len(locations) > 0:
+            #     for face_location in locations:
+            #         top, right, bottom, left = face_location
+            #         cv2.rectangle(frame, (left,top), (right, bottom), (0,255,0), 2)
+
         
     end = time.time()
 

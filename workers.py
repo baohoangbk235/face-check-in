@@ -73,7 +73,13 @@ def callback(ch, method, properties, body):
     try:
         start = time.time()
         mes = np.frombuffer(body, dtype=np.uint8)
-        mes = mes.reshape((480, 640, 3))
+        mes = mes.reshape((480, 641, 3))
+        
+        camID = mes[0,640,0]
+
+        mes = mes[:,:640,:]
+
+        print(camID)
         faces = detector.detect_faces(mes)
 
         global csv_reader
@@ -81,7 +87,7 @@ def callback(ch, method, properties, body):
         global c 
         global encodings 
 
-        predictions = c.get_predictions()
+        predictions = c.get_predictions(camID)
 
         new_predictions = []
 
@@ -110,7 +116,7 @@ def callback(ch, method, properties, body):
                 new_predictions.append("unknown")
         
         c.add_predictions(new_predictions)
-        predictions = c.get_predictions()
+        predictions = c.get_predictions(camID)
 
         print(f'{mp.current_process().name} : {predictions}')
                 
@@ -178,15 +184,24 @@ def exit_signal_handler(sig, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, exit_signal_handler)
     ctx = mp.get_context('spawn')
-    p1 = ctx.Process(target=create_worker, args=())
-    p2 = ctx.Process(target=create_worker, args=())
-    p3 = ctx.Process(target=create_worker, args=())
-
-    p1.start()
-    p2.start()
-    p3.start()
+    process_list = []
+    for i in range(3):
+        p = ctx.Process(target=create_worker, args=())
+        process_list.append(p)
+        
+    for p in process_list:
+        p.start()
     
-    p1.join()
-    p2.join()
-    p3.join()
-    f.close()
+    for p in process_list:
+        p.join()
+    # p1 = ctx.Process(target=create_worker, args=())
+    # p2 = ctx.Process(target=create_worker, args=())
+    # p3 = ctx.Process(target=create_worker, args=())
+
+    # p1.start()
+    # p2.start()
+    # p3.start()
+    
+    # p1.join()
+    # p2.join()
+    # p3.join()
