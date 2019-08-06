@@ -9,6 +9,7 @@ retrain_images_dir: '/home/baohoang235/face-check-in/retrain_images'
 encoding_path: '/home/baohoang235/face-check-in/Bao/trained/1//encodings.npy'
 save_dir: 'data/save_dir/'
 font_path: 'font/architep.ttf'
+cpu_count: 4
 thickness: 5
 font_size: 60
 n_neighbors: 20

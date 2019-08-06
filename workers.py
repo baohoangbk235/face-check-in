@@ -24,6 +24,7 @@ try:
 except:
     raise ("Error: Config file does not exist !")
 
+CPU_COUNT = cfg['cpu_count']
 DATABASE = cfg['database']
 LABEL_PATH = cfg['label_path']
 ENCODING_PATH = cfg['encoding_path']
@@ -49,7 +50,7 @@ name = None
 total_time = 0
 total_detect = 0 
 
-c = CheckinManager(DATABASE)
+c = CheckinManager(DATABASE,2)
 
 def create_worker():
 
@@ -75,11 +76,12 @@ def callback(ch, method, properties, body):
         mes = np.frombuffer(body, dtype=np.uint8)
         mes = mes.reshape((480, 641, 3))
         
-        camID = mes[0,640,0]
+        camID = int(mes[0,640,0])
 
         mes = mes[:,:640,:]
 
-        print(camID)
+        print(f"[INFO] Camera ID :  {camID}")
+
         faces = detector.detect_faces(mes)
 
         global csv_reader
@@ -88,8 +90,6 @@ def callback(ch, method, properties, body):
         global encodings 
 
         predictions = c.get_predictions(camID)
-
-        new_predictions = []
 
         faces_locations = []
 
@@ -111,11 +111,10 @@ def callback(ch, method, properties, body):
             faces_encodings = face_recognition.face_encodings(mes, [max_face])
             results = knn.kneighbors(faces_encodings, n_neighbors=1)
             if results[0][0][0] < 0.4 and faces[max_index]["confidence"] > 0.96:
-                new_predictions.append(labels[int(results[1][0][0])])
+                c.add_prediction(labels[int(results[1][0][0])], camID)
             else:
-                new_predictions.append("unknown")
+                c.add_prediction("unknown", camID)
         
-        c.add_predictions(new_predictions)
         predictions = c.get_predictions(camID)
 
         print(f'{mp.current_process().name} : {predictions}')
@@ -124,6 +123,7 @@ def callback(ch, method, properties, body):
             if len(predictions) < 5:
                 print("Recognizing.....")
             else:
+                predictions = predictions[-5:]
                 counter = collections.Counter(predictions)
                 (final_prediction, times) =  counter.most_common(1)[0]
                 if times > 3:
@@ -160,7 +160,7 @@ def callback(ch, method, properties, body):
 
                     predictions = []
 
-        c.update_predictions(predictions)
+        c.update_predictions(predictions, camID)
         end = time.time()
         print(f'Time processing: {end - start} s.')
 
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, exit_signal_handler)
     ctx = mp.get_context('spawn')
     process_list = []
-    for i in range(3):
+    for i in range(CPU_COUNT):
         p = ctx.Process(target=create_worker, args=())
         process_list.append(p)
         
@@ -194,14 +194,4 @@ if __name__ == "__main__":
     
     for p in process_list:
         p.join()
-    # p1 = ctx.Process(target=create_worker, args=())
-    # p2 = ctx.Process(target=create_worker, args=())
-    # p3 = ctx.Process(target=create_worker, args=())
 
-    # p1.start()
-    # p2.start()
-    # p3.start()
-    
-    # p1.join()
-    # p2.join()
-    # p3.join()

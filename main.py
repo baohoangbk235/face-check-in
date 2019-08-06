@@ -8,7 +8,7 @@ import threading
 cap_list = []
 cap = cv2.VideoCapture(0)
 cap_list.append(cap)
-c = CheckinManager('/home/baohoang235/face-check-in/database.db')
+c = CheckinManager('/home/baohoang235/face-check-in/database.db',2)
 
 def send_frame(frame, camera_channel):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -51,7 +51,7 @@ while(True):
         frame = cv2.resize(frame, (640,480))
 
         if count_detect % detect_delay == 0:
-            send_frame(frame, 0)
+            send_frame(frame, 1)
 
             # predictions, locations = c.get_predictions()
 

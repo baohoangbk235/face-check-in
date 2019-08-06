@@ -5,9 +5,10 @@ import json
 DATABASE = '/home/baohoang235/face-check-in/database.db'
 
 class CheckinManager(object):
-    def __init__(self, database):
+    def __init__(self, database, cameraNum):
         self.conn = None
         self.cursor = None
+        self.cameraNum = cameraNum
 
         if database:
             self.open(database)
@@ -28,6 +29,7 @@ class CheckinManager(object):
     def create_table(self):
         self.conn.execute('\
             CREATE TABLE IF NOT EXISTS "predictions" (\
+                "camID" INT NOT NULL,\
                 "pred"	TEXT NOT NULL\
             )\
         ')
@@ -39,20 +41,15 @@ class CheckinManager(object):
             )\
         ')
 
-    def add_predictions(self, list_predictions):
-        for item in list_predictions:
-            self.cursor.execute("INSERT INTO predictions(pred) VALUES(?)", (item,))
-        count = len(self.get_predictions())
-        if count <= 5:
-            count = 0
-        else:
-            count = count - 5
-        self.limit_predictions(count)
-        self.conn.commit()
 
-    def update_predictions(self, list_predictions):
-        self.delete_predictions()
-        self.add_predictions(list_predictions)
+    def add_prediction(self,prediction, camID):
+        predictions_list = self.get_predictions(camID)
+        predictions_list.append(prediction)
+        self.update_predictions(predictions_list, camID)
+
+    def update_predictions(self, list_predictions, camID):
+        task = {"prediction": list_predictions}
+        self.cursor.execute("UPDATE predictions SET pred=? WHERE camID=?", (str(task),camID))        
         self.conn.commit()
     
     def add_result(self, name, time, image):
@@ -84,26 +81,34 @@ class CheckinManager(object):
         self.cursor.execute("DELETE FROM predictions")
         self.conn.commit()
 
-    def limit_predictions(self, count):
-        self.cursor.execute(f"DELETE FROM predictions limit {count}")
-        self.conn.commit()
-
-    def get_predictions(self):
+    def get_predictions(self,camID):
         predictions = []
-        self.cursor.execute("SELECT * from predictions")
-        rows = self.cursor.fetchall()
-        for row in rows:
-            predictions.append(str(row[0]))
-
-        return predictions
+        self.cursor.execute("SELECT * from predictions WHERE camID=?",(camID,))
+        row = self.cursor.fetchone()
+        if row is not None:
+            predictions = json.loads(row[1].replace('\'','\"'))["prediction"]
+            return predictions
+        return None
 
     def delete_tables(self):
-        self.cursor.execute('DROP TABLE predictions')
+        self.cursor.execute('DROP TABLE predictions')   
         self.cursor.execute('DROP TABLE results')
 
 
 if __name__ == "__main__":
-    c = CheckinManager(DATABASE)
+    c = CheckinManager(DATABASE,2)
     c.delete_tables()
     c.create_table()
+    # task = {"prediction": []}
+    # c.cursor.execute("INSERT INTO predictions(pred,camID) VALUES(?,?)", (str(task),0))
+    # c.conn.commit()
+    # task = {"prediction": []}
+    # c.cursor.execute("INSERT INTO predictions(pred,camID) VALUES(?,?)", (str(task),2))
+    # c.conn.commit()
+
+    # c.update_predictions(["hoang_gia_bao", "nguyen_phuong_nam"],0)
+    # c.update_predictions(["hoang_gia_bao", "nguyen_hong_son"],2)    
+
+    # print(c.get_predictions(0))
+    # print(c.get_predictions(2))
     c.close()
